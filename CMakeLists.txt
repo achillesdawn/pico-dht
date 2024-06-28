@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.13)
 # initialize the SDK directly
 include(pico_sdk_import.cmake)
 
-project(blink_irq C CXX ASM)
+project(dht11 C CXX ASM)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
@@ -12,25 +12,25 @@ set(CMAKE_CXX_STANDARD 17)
 # initialize the Raspberry Pi Pico SDK
 pico_sdk_init()
 
-
-
-add_executable(blink_irq
-    blink_irq.c
-    ssd1306.h
-    ssd1306.c
-    font.h
+add_executable(dht11
+    dht11.c
+    dhtlib.c
+    # dhtlib.h
+    # ssd1306.h
+    # ssd1306.c
+    # font.h
 )
 
-pico_enable_stdio_usb(blink_irq 1)
-pico_enable_stdio_uart(blink_irq 0)
+pico_enable_stdio_usb(dht11 1)
+pico_enable_stdio_uart(dht11 0)
 
-# target_include_directories(blink_irq
+# target_include_directories(dht11
 #     PRIVATE ssd1306
 # )
 
-target_link_libraries(blink_irq 
+target_link_libraries(dht11 
     pico_stdlib
-    hardware_i2c
+    # hardware_i2c
 )
 
-pico_add_extra_outputs(blink_irq)
+pico_add_extra_outputs(dht11)

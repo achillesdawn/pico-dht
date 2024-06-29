@@ -40,12 +40,15 @@ bool repeating_toggle_led(struct repeating_timer* t) {
 
 bool repeating_measure_dht(struct repeating_timer* t) {
     dht_init_sequence(DHT_PIN);
+    return true;
 }
 
 int main() {
     stdio_init_all();
 
-    sleep_ms(2000);
+    sleep_ms(1000);
+
+    printf("SETTING UP");
 
     uint16_t pins[] = { LED_PIN, DHT_PIN, DHT_VCC_PIN };
 
@@ -62,7 +65,7 @@ int main() {
     struct repeating_timer timer;
     UserData data;
     data.a_number = 42;
-    strcpy(data.hello, "Hello World<<>>");
+    strcpy(data.hello, "Hello World");
 
     add_repeating_timer_ms(500, repeating_print, &data, &timer);
 

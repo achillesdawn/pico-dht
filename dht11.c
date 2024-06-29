@@ -1,40 +1,42 @@
 #include <inttypes.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "dhtlib.h"
 #include "hardware/gpio.h"
 #include "pico/stdlib.h"
 
-const uint8_t led = 15;
-const uint8_t button = 13;
-const uint8_t dht = 16;
+const uint8_t LED = 15;
+const uint8_t BUTTON = 13;
+const uint8_t DHT = 16;
 
+volatile bool led_state = false;
 // const uint sda = 2;
 // const uint scl = 3;
 
 
 int64_t alarm_callback(alarm_id_t alarm_id, void *user_data) {
     for (int i = 0; i < 5; i++) {
-        gpio_put(led, 1);
+        gpio_put(LED, 1);
         busy_wait_ms(50);
-        gpio_put(led, 0);
+        gpio_put(LED, 0);
         busy_wait_ms(50);
     }
-    gpio_set_irq_enabled(button, GPIO_IRQ_EDGE_FALL, true);
+    gpio_set_irq_enabled(BUTTON, GPIO_IRQ_EDGE_FALL, true);
     return 0;
 }
 
 void gpio_callback(uint gpio, uint32_t events) {
     switch (gpio) {
-        case button:
-            gpio_set_irq_enabled(button, GPIO_IRQ_EDGE_FALL, false);
+        case BUTTON:
+            gpio_set_irq_enabled(BUTTON, GPIO_IRQ_EDGE_FALL, false);
             for (int i = 1; i < 4; i++) {
-                gpio_put(led, 1);
+                gpio_put(LED, 1);
                 busy_wait_ms(50);
-                gpio_put(led, 0);
+                gpio_put(LED, 0);
                 busy_wait_ms(50);
             }
-            gpio_set_irq_enabled(button, GPIO_IRQ_EDGE_FALL, true);
+            gpio_set_irq_enabled(BUTTON, GPIO_IRQ_EDGE_FALL, true);
             break;
         default:
             break;
@@ -61,46 +63,48 @@ void init_button(uint button) {
     gpio_pull_down(button);
 }
 
+typedef struct UserData {
+    uint16_t a_number;
+    char hello[20];
+} UserData;
+
+// Create a repeating timer that calls repeating_timer_callback.
+// If the delay is > 0 then this is the delay between the previous callback ending and the next starting.
+// If the delay is negative (see below) then the next call to the callback will be exactly 500ms after the
+// start of the call to the last callback
+bool repeating_timer_callback(struct repeating_timer *t) {
+    // casting void * to a Data *
+    UserData *data = (UserData *)t->user_data;
+    printf("%s %d\n%llu\n", data->hello, data->a_number, time_us_64());
+    return true;
+}
+
+bool toggle_led_repeating_callback(struct repeating_timer *t) {
+    led_state = !led_state;
+    gpio_put(LED, led_state);
+    return true;
+}
+
 int main() {
     stdio_init_all();
 
-    printf("ready to go");
+    gpio_init(LED);
+    gpio_set_dir(LED, GPIO_OUT);
+    gpio_put(LED, false);
 
-    gpio_init(led);
-    gpio_set_dir(led, GPIO_OUT);
+    printf("SETTING UP");
 
-    gpio_init(dht);
-    gpio_set_dir(dht, GPIO_OUT);
-    gpio_put(dht, true);
+    struct repeating_timer timer;
+    UserData data;
+    data.a_number = 42;
+    strcpy(data.hello, "Hello World<<>>");
 
-    init_button(button);
-
-    gpio_set_irq_enabled_with_callback(
-        button, GPIO_IRQ_EDGE_FALL, true,
-        &gpio_callback
-    );
-
-    // gpio_set_irq_enabled(
-    //     button2,
-    //     GPIO_IRQ_EDGE_FALL,
-    //     true);
-
-    absolute_time_t start;
-    int64_t diff;
-
-    sleep_ms(1000);
+    add_repeating_timer_ms(500, repeating_timer_callback, &data, &timer);
+    
+    struct repeating_timer led_timer;
+    add_repeating_timer_ms(500, toggle_led_repeating_callback, NULL, &led_timer);
 
     while (true) {
-        start = get_absolute_time();
-
-        dht_init_sequence(dht);
-
-        gpio_set_dir(dht, GPIO_OUT);
-        gpio_put(dht, true);
-
-        diff = absolute_time_diff_us(start, get_absolute_time());
-        printf("time microseconds: %d", diff);
-
-        sleep_ms(10 * 1000);
-    };
+        tight_loop_contents();
+    }
 }

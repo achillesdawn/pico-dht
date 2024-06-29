@@ -12,9 +12,10 @@ set(CMAKE_CXX_STANDARD 17)
 # initialize the Raspberry Pi Pico SDK
 pico_sdk_init()
 
+
 add_executable(dht11
     dht11.c
-    dhtlib.c
+    dhtlib/dhtlib.c
     # dhtlib.h
     # ssd1306.h
     # ssd1306.c
@@ -24,9 +25,7 @@ add_executable(dht11
 pico_enable_stdio_usb(dht11 1)
 pico_enable_stdio_uart(dht11 0)
 
-# target_include_directories(dht11
-#     PRIVATE ssd1306
-# )
+
 
 target_link_libraries(dht11 
     pico_stdlib

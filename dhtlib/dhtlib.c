@@ -48,7 +48,6 @@ Dht22Data dht22_convert(uint8_t arr[]) {
     data.temperature = data.temperature << 8;
     data.temperature |= arr[3];
     return data;
-
 }
 
 bool wait_for_value(uint8_t dht, bool wait_value) {
@@ -62,11 +61,10 @@ bool wait_for_value(uint8_t dht, bool wait_value) {
             value = gpio_get(dht);
         }
     }
-
     return true;
 }
 
-void dht_read_sequence(uint8_t dht) {
+void dht_read_sequence(uint8_t DHT_PIN) {
     uint8_t data[5] = {0};
     bool value;
     uint8_t values_read = 0;
@@ -77,26 +75,26 @@ void dht_read_sequence(uint8_t dht) {
         for (uint8_t mask = 0; mask < 8; mask++) {
             sleep_us(30);
 
-            value = gpio_get(dht);
+            value = gpio_get(DHT_PIN);
 
             values_read += 1;
 
             data[pos] |= value << (7 - mask);
 
             if (value == 0) {
-                if (wait_for_value(dht, 1)) {
+                if (wait_for_value(DHT_PIN, 1)) {
                     printf("mask %d pos %d got 0 waited for 1, returned", mask,
                            pos);
                     return;
                 };
 
             } else {
-                if (wait_for_value(dht, 0)) {
+                if (wait_for_value(DHT_PIN, 0)) {
                     printf("mask %d pos %d got 1 waited for 0, returned", mask,
                            pos);
                     return;
                 } else {
-                    if (wait_for_value(dht, 1)) {
+                    if (wait_for_value(DHT_PIN, 1)) {
                         printf("mask %d pos %d got 1 waited for 1, returned",
                                mask, pos);
                         return;
@@ -105,7 +103,9 @@ void dht_read_sequence(uint8_t dht) {
             }
         }
     }
+
     printf("read done, values read: %d\n", values_read);
+
     if (validate(data)) {
         print_array(data, 5);
         Dht22Data struct_data = dht22_convert(data);
@@ -113,38 +113,42 @@ void dht_read_sequence(uint8_t dht) {
     };
 }
 
-void dht_init_sequence(uint8_t dht) {
-    printf("\n\ninitializing dht sequence\n");
-    gpio_put(dht, false);
+void dht_init_sequence(uint8_t DHT_PIN) {
+    printf("\n\n");
+    printf("initializing dht sequence\n");
+
+    gpio_put(DHT_PIN, false);
     sleep_ms(18);
 
-    gpio_set_dir(dht, GPIO_IN);
-    gpio_pull_up(dht);
+    gpio_set_dir(DHT_PIN, GPIO_IN);
+    gpio_pull_up(DHT_PIN);
     sleep_us(20);
 
     bool value;
 
     for (uint8_t i = 0; i < 4; i++) {
-        value = gpio_get(dht);
+
+        value = gpio_get(DHT_PIN);
+
         if (!value) {
             printf("got 0, starting read sequence\n");
 
-            if (wait_for_value(dht, 1)) {
+            if (wait_for_value(DHT_PIN, 1)) {
                 printf("initialiaziation failed");
                 return;
             }
 
-            if (wait_for_value(dht, 0)) {
+            if (wait_for_value(DHT_PIN, 0)) {
                 printf("initialiaziation failed");
                 return;
             };
 
-            if (wait_for_value(dht, 1)) {
+            if (wait_for_value(DHT_PIN, 1)) {
                 printf("initialiaziation failed");
                 return;
             };
 
-            dht_read_sequence(dht);
+            dht_read_sequence(DHT_PIN);
             break;
         }
         sleep_us(20);

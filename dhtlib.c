@@ -11,10 +11,10 @@ typedef struct Dht11Data {
     float temperature;
 } Dht11Data;
 
-bool dht22 = false;
+volatile bool ready = false;
 
 void print_array(uint8_t arr[], uint8_t length) {
-    printf("\n[ ");
+    printf("[ ");
     for (int i = 0; i < length; i++) {
         printf("%d, ", arr[i]);
     }
@@ -45,7 +45,7 @@ Dht11Data dht11_convert(uint8_t arr[]) {
 /// @param dht pin to read from 
 /// @param wait_value 
 /// @return returns true if value was read within time limit, else returns false
-inline bool wait_for_value(uint8_t dht, bool wait_value) {
+bool wait_for_value(uint8_t dht, bool wait_value) {
     bool value;
 
     for (uint8_t i = 0; i < 30; i++) {
@@ -67,7 +67,7 @@ void dht_read_sequence(uint8_t DHT_PIN) {
 
     for (uint8_t byte = 0; byte < 5; byte++) {
         for (uint8_t bit = 0; bit < 8; bit++) {
-            
+
             // if we are at a high bit (1), then wait for a low bit (0)
             if (signal) {
                 if (!wait_for_value(DHT_PIN, 0)) {
@@ -107,7 +107,15 @@ void dht_read_sequence(uint8_t DHT_PIN) {
     }
 }
 
+void gpio_callback(uint gpio, uint32_t event_mask) {
+
+    if (gpio == 18) {
+        ready = true;
+    }
+}
+
 void dht_init_sequence(uint8_t DHT_PIN) {
+    
     printf("initializing dht sequence\n");
 
     gpio_put(DHT_PIN, false);
@@ -127,7 +135,39 @@ void dht_init_sequence(uint8_t DHT_PIN) {
         return;
     }
 
-    dht_read_sequence(DHT_PIN);
+    gpio_set_irq_enabled(DHT_PIN, GPIO_IRQ_EDGE_RISE, true);
+    irq_set_enabled(IO_IRQ_BANK0, true);
+    gpio_set_irq_callback(gpio_callback);
+
+    const uint8_t PIN = 18;
+
+    uint8_t data[5] = { 0, 0, 0, 0 ,0 };
+    uint8_t bits_read = 0;
+    bool signal = true;
+    ready = false;
+
+    while (bits_read < 40) {
+        if (ready) {
+            sleep_us(30);
+            signal = gpio_get(DHT_PIN);
+
+            data[bits_read / 8] |= signal << (7 - (bits_read % 8));
+            bits_read += 1;
+            ready = false;
+        }
+        else {
+            sleep_us(3);
+        }
+    }
+
+    if (validate(data)) {
+        print_array(data, 5);
+        Dht11Data struct_data = dht11_convert(data);
+        print_data(struct_data);
+    } else {
+        printf("Validation Failed\n");
+        print_array(data, 5);
+    }
 
     printf("dht done, returning\n");
 }

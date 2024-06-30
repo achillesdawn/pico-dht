@@ -59,54 +59,6 @@ bool wait_for_value(uint8_t dht, bool wait_value) {
     return false;
 }
 
-void dht_read_sequence(uint8_t DHT_PIN) {
-    uint8_t data[5] = { 0, 0, 0, 0 ,0 };
-
-    uint8_t bits_read = 0;
-    bool signal = true;
-
-    for (uint8_t byte = 0; byte < 5; byte++) {
-        for (uint8_t bit = 0; bit < 8; bit++) {
-
-            // if we are at a high bit (1), then wait for a low bit (0)
-            if (signal) {
-                if (!wait_for_value(DHT_PIN, 0)) {
-                    printf("waiting for 0 took too long\n");
-                    printf("reading byte %d\n", byte);
-                    return;
-                }
-            }
-            // when we get to a low bit, wait for high a bit
-            if (!wait_for_value(DHT_PIN, 1)) {
-                printf("waiting for 1 took too long\n");
-                printf("reading byte %d\n", byte);
-                return;
-            }
-
-            // if signal is high for more than 30us, then its a 1 bit, else its a 0 bit
-            sleep_us(30);
-
-            signal = gpio_get(DHT_PIN);
-
-            bits_read += 1;
-
-            data[byte] |= signal << (7 - bit);
-        }
-    }
-
-    printf("read done, values read: %d\n", bits_read);
-
-    if (validate(data)) {
-        print_array(data, 5);
-        Dht11Data struct_data = dht11_convert(data);
-        print_data(struct_data);
-    }
-    else {
-        printf("Validation Failed");
-        print_array(data, 5);
-    }
-}
-
 void gpio_callback(uint gpio, uint32_t event_mask) {
 
     if (gpio == 18) {
@@ -115,7 +67,7 @@ void gpio_callback(uint gpio, uint32_t event_mask) {
 }
 
 void dht_init_sequence(uint8_t DHT_PIN) {
-    
+
     printf("initializing dht sequence\n");
 
     gpio_put(DHT_PIN, false);
@@ -164,7 +116,8 @@ void dht_init_sequence(uint8_t DHT_PIN) {
         print_array(data, 5);
         Dht11Data struct_data = dht11_convert(data);
         print_data(struct_data);
-    } else {
+    }
+    else {
         printf("Validation Failed\n");
         print_array(data, 5);
     }

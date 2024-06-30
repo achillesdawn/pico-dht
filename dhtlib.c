@@ -41,7 +41,11 @@ Dht11Data dht11_convert(uint8_t arr[]) {
     return data;
 }
 
-bool wait_for_value(uint8_t dht, bool wait_value) {
+/// @brief waits for a value 
+/// @param dht pin to read from 
+/// @param wait_value 
+/// @return returns true if value was read within time limit, else returns false
+inline bool wait_for_value(uint8_t dht, bool wait_value) {
     bool value;
 
     for (uint8_t i = 0; i < 30; i++) {
@@ -62,20 +66,20 @@ void dht_read_sequence(uint8_t DHT_PIN) {
     bool signal = true;
 
     for (uint8_t byte = 0; byte < 5; byte++) {
-        printf("reading byte %d\n", byte);
-
         for (uint8_t bit = 0; bit < 8; bit++) {
             
             // if we are at a high bit (1), then wait for a low bit (0)
             if (signal) {
                 if (!wait_for_value(DHT_PIN, 0)) {
-                    printf("initialiaziation failed");
+                    printf("waiting for 0 took too long\n");
+                    printf("reading byte %d\n", byte);
                     return;
                 }
             }
             // when we get to a low bit, wait for high a bit
             if (!wait_for_value(DHT_PIN, 1)) {
-                printf("initialiaziation failed");
+                printf("waiting for 1 took too long\n");
+                printf("reading byte %d\n", byte);
                 return;
             }
 

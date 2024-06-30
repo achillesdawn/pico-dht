@@ -1,4 +1,6 @@
 #include <inttypes.h>
+
+#include<stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -43,7 +45,6 @@ bool initialize_pin(uint8_t pin) {
     gpio_put(pin, true);
 }
 
-
 int main() {
     stdio_init_all();
 
@@ -62,10 +63,8 @@ int main() {
 
     while (true) {
         sleep_ms(3000);
-
-        dht_init_sequence(DHT_PIN);
-
-        gpio_set_dir(DHT_PIN, GPIO_OUT);
-        gpio_put(DHT_PIN, true);
+        DhtData* data = dht_init_sequence();
+        printf("got %f humidity, %f temperature", data->humidity, data->temperature);
+        free(data);
     }
 }

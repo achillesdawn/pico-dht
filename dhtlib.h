@@ -1,5 +1,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+typedef struct DhtData {
+    float humidity;
+    float temperature;
+} DhtData;
 
-void dht_init_sequence(uint8_t dht);
+DhtData* dht_init_sequence();

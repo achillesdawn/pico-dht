@@ -6,10 +6,10 @@
 #include "pico/stdlib.h"
 
 
-typedef struct Dht11Data {
+typedef struct DhtData {
     float humidity;
     float temperature;
-} Dht11Data;
+} DhtData;
 
 volatile bool ready = false;
 
@@ -21,7 +21,7 @@ void print_array(uint8_t arr[], uint8_t length) {
     printf("]\n");
 }
 
-void print_data(Dht11Data data) {
+void print_data(DhtData data) {
     printf("Temp: %f\n", data.temperature);
     printf("Humidity: %f\n", data.humidity);
 }
@@ -31,12 +31,25 @@ bool validate(uint8_t arr[]) {
     return arr[4] == validation;
 }
 
-Dht11Data dht11_convert(uint8_t arr[]) {
+DhtData dht11_convert(uint8_t arr[]) {
 
-    Dht11Data data;
+    DhtData data;
 
     data.humidity = ((float)arr[1] / 10) + arr[0];
     data.temperature = ((float)arr[3] / 10) + arr[2];
+
+    return data;
+}
+
+
+DhtData dht22_convert(uint8_t arr[]) {
+
+    DhtData data;
+
+    data.humidity = (arr[0] << 8) + arr[1];
+    data.humidity /= 10;
+    data.temperature = (arr[2] << 8) + arr[3];
+    data.temperature /= 10;
 
     return data;
 }
@@ -114,13 +127,16 @@ void dht_init_sequence(uint8_t DHT_PIN) {
 
     if (validate(data)) {
         print_array(data, 5);
-        Dht11Data struct_data = dht11_convert(data);
+        DhtData struct_data = dht22_convert(data);
         print_data(struct_data);
     }
     else {
         printf("Validation Failed\n");
         print_array(data, 5);
     }
+
+    gpio_set_irq_enabled(DHT_PIN, GPIO_IRQ_EDGE_RISE, false);
+    irq_set_enabled(IO_IRQ_BANK0, false);
 
     printf("dht done, returning\n");
 }

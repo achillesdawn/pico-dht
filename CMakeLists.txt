@@ -15,7 +15,7 @@ pico_sdk_init()
 
 add_executable(dht11
     dht11.c
-    dhtlib/dhtlib.c
+    dhtlib.c
     # dhtlib.h
     # ssd1306.h
     # ssd1306.c

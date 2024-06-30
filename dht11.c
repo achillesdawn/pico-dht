@@ -5,11 +5,10 @@
 #include "hardware/gpio.h"
 #include "pico/stdlib.h"
 
-#include "dhtlib/dhtlib.h"
+#include "dhtlib.h"
 
 const uint8_t LED_PIN = 15;
 const uint8_t DHT_PIN = 18;
-const uint8_t DHT_VCC_PIN = 19;
 
 volatile bool led_state = false;
 // const uint sda = 2;
@@ -38,44 +37,35 @@ bool repeating_toggle_led(struct repeating_timer* t) {
     return true;
 }
 
-bool repeating_measure_dht(struct repeating_timer* t) {
-    dht_init_sequence(DHT_PIN);
-    return true;
+bool initialize_pin(uint8_t pin) {
+    gpio_init(pin);
+    gpio_set_dir(pin, GPIO_OUT);
+    gpio_put(pin, true);
 }
+
 
 int main() {
     stdio_init_all();
 
-    sleep_ms(1000);
+    sleep_ms(2000);
 
     printf("SETTING UP");
 
-    uint16_t pins[] = { LED_PIN, DHT_PIN, DHT_VCC_PIN };
-
-    int num_pins = sizeof(pins) / sizeof(pins[0]);
-
-    for (size_t i = 0; i < num_pins; i++) {
-        gpio_init(pins[i]);
-        gpio_set_dir(pins[i], GPIO_OUT);
-    }
-
-    gpio_put(DHT_VCC_PIN, true);
-    gpio_put(LED_PIN, false);
-
-    struct repeating_timer timer;
-    UserData data;
-    data.a_number = 42;
-    strcpy(data.hello, "Hello World");
-
-    add_repeating_timer_ms(500, repeating_print, &data, &timer);
+    initialize_pin(LED_PIN);
+    initialize_pin(DHT_PIN);
 
     struct repeating_timer led_timer;
     add_repeating_timer_ms(500, repeating_toggle_led, NULL, &led_timer);
 
-    struct repeating_timer dht_timer;
-    add_repeating_timer_ms(3000, repeating_measure_dht, NULL, &dht_timer);
+    // struct repeating_timer dht_timer;
+    // bool alarm_set = add_repeating_timer_ms(3000, repeating_measure_dht, NULL, &dht_timer);
 
     while (true) {
-        tight_loop_contents();
+        sleep_ms(3000);
+
+        dht_init_sequence(DHT_PIN);
+
+        gpio_set_dir(DHT_PIN, GPIO_OUT);
+        gpio_put(DHT_PIN, true);
     }
 }
